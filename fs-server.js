@@ -1,72 +1,92 @@
 const http = require("http");
 const fs = require("fs");
-const path = require("path")
-const eventos = require("events")
+const path = require("path");
+const eventos = require("events");
 
-//Create  event emitter
+// Crear EventEmitter
 const EventEmitter = new eventos();
 
-//Registro de eventos
-EventEmitter.on("fileRead",(filename)=>{
-    console.log(`File "${filename}" fue leido con exito`)
-});
+// Ruta del archivo principal
+const filePath = path.join(__dirname, "messages.txt");
 
-//Funtion to log requests
-async function logRequest(req){
-    const logMessage = `${new Date().toISOString()} ${req.method} ${req.url}\n`;
+// Función para registrar las peticiones HTTP
+async function logRequest(req) {
+    const logMessage = `[${new Date().toLocaleString()}] PETICIÓN: ${req.method} ${req.url}\n`;
     const logFilePath = path.join(__dirname, "log.txt");
 
     try {
         await fs.promises.appendFile(logFilePath, logMessage);
-        console.log("Request writing to log file successfully");
+        console.log("Petición registrada en log.txt");
     } catch (err) {
-        console.error("Error writing to log file:", err);
+        console.error("Error registrando la petición:", err);
     }
 }
 
-//Server 
-const server = http.createServer(async (req, res)=>{
-    await logRequest(req); //Log each request
+// Función para registrar eventos personalizados (lectura, escritura, etc.)
+async function logEvent(eventType, filename) {
+    const logMessage = `[${new Date().toLocaleString()}] EVENTO: ${eventType} - Archivo: ${filename}\n`;
+    const logFilePath = path.join(__dirname, "log.txt");
 
-    //Registro de Routas
-    const filePath = path.join(__dirname, "messages.txt");
+    try {
+        await fs.promises.appendFile(logFilePath, logMessage);
+        console.log(`Evento "${eventType}" registrado`);
+    } catch (err) {
+        console.error("Error escribiendo en el log de eventos:", err);
+    }
+}
 
-    if(req.url==="/"){
-        res.writeHead(200, {"content-type":"text/plain"});
-        res.end("Bienvenido Al Servidor De Archivos");
+// Registro de eventos con logging
+EventEmitter.on("fileRead", async (filename) => {
+    console.log(`Archivo "${filename}" fue leído correctamente`);
+    await logEvent("LECTURA", filename);
+});
+
+EventEmitter.on("fileWrite", async (filename) => {
+    console.log(`Archivo "${filename}" fue escrito correctamente`);
+    await logEvent("ESCRITURA", filename);
+});
+
+EventEmitter.on("fileUpdate", async (filename) => {
+    console.log(`Archivo "${filename}" fue actualizado`);
+    await logEvent("ACTUALIZACIÓN", filename);
+});
+
+EventEmitter.on("fileDelete", async (filename) => {
+    console.log(`Archivo "${filename}" fue eliminado`);
+    await logEvent("ELIMINACIÓN", filename);
+});
+
+// Servidor HTTP
+const server = http.createServer(async (req, res) => {
+    await logRequest(req); // Log de cada petición
+
+    // Ruta principal
+    if (req.url === "/") {
+        res.writeHead(200, { "Content-Type": "text/plain" });
+        res.end("Bienvenido al Servidor de Archivos");
     }
 
     // Leer archivo
-    else if(req.url === "/leer"){
-        fs.readFile(filePath, "utf-8",(err,data)=>{
-            //Error Leyendo Archivo
-            if(err){
-                //Mensaje de error por HTTP
-                res.writeHead(500, {"content-type":"text/plain"});
-                res.end("Error de lectura de archivo");
-            };
-            //Mensaje de exito por HTTP
-            //Caso De Exito - Leemos Archivo
-            EventEmitter.emit("fileRead","messages.txt")
-            //Data por HTTP
-            res.writeHead(200,{"content-type":"text/plain"});
-            res.end(`Éxito de lectura de archivo\nContenido:\n${data}`);
+    else if (req.url === "/leer") {
+        fs.readFile(filePath, "utf-8", async (err, data) => {
+            if (err) {
+                res.writeHead(500, { "Content-Type": "text/plain" });
+                return res.end("Error al leer el archivo");
+            }
+            await EventEmitter.emit("fileRead", "messages.txt");
+            res.writeHead(200, { "Content-Type": "text/plain" });
+            res.end(`Archivo leído con éxito\n\nContenido:\n${data}`);
         });
     }
-    
-    // Escribir archivo 
+
+    // Escribir archivo
     else if (req.url === "/escribir") {
-        fs.writeFile(filePath, "Hola, este es un nuevo archivo!", (err) => {
-            //Error Escritura Archivo
+        fs.writeFile(filePath, "Hola, este es un nuevo archivo!", async (err) => {
             if (err) {
-                //Mensaje de error por HTTP
                 res.writeHead(500, { "Content-Type": "text/plain" });
                 return res.end("Error al escribir el archivo");
             }
-            //Mensaje de exito por HTTP
-            //Caso De Exito - Escribir por HTTP
-            EventEmitter.emit("fileWrite", "messages.txt");
-            //Data por HTTP
+            await EventEmitter.emit("fileWrite", "messages.txt");
             res.writeHead(200, { "Content-Type": "text/plain" });
             res.end("Archivo escrito con éxito");
         });
@@ -74,17 +94,12 @@ const server = http.createServer(async (req, res)=>{
 
     // Actualizar archivo
     else if (req.url === "/actualizar") {
-        fs.appendFile(filePath, "\nNueva línea agregada!", (err) => {
-            //Error Modificar Archivo
+        fs.appendFile(filePath, "\nNueva línea agregada!", async (err) => {
             if (err) {
-                //Mensaje de error por HTTP
                 res.writeHead(500, { "Content-Type": "text/plain" });
                 return res.end("Error al actualizar el archivo");
             }
-            //Mensaje de exito por HTTP
-            //Caso De Exito - Modificar por HTTP
-            EventEmitter.emit("fileUpdate", "messages.txt");
-            //Data por HTTP
+            await EventEmitter.emit("fileUpdate", "messages.txt");
             res.writeHead(200, { "Content-Type": "text/plain" });
             res.end("Archivo actualizado con éxito");
         });
@@ -92,30 +107,25 @@ const server = http.createServer(async (req, res)=>{
 
     // Eliminar archivo
     else if (req.url === "/eliminar") {
-        fs.unlink(filePath, (err) => {
-            //Error Eliminar Archivo
+        fs.unlink(filePath, async (err) => {
             if (err) {
-                //Mensaje de error por HTTP
                 res.writeHead(500, { "Content-Type": "text/plain" });
-                return res.end("Error al eliminar (tal vez no existe)");
+                return res.end("Error al eliminar el archivo (quizá no existe)");
             }
-            //Mensaje de exito por HTTP
-            //Caso De Exito - Eliminar por HTTP
-            EventEmitter.emit("fileDelete", "messages.txt");
-            //Data por HTTP
+            await EventEmitter.emit("fileDelete", "messages.txt");
             res.writeHead(200, { "Content-Type": "text/plain" });
             res.end("Archivo eliminado con éxito");
         });
     }
 
     // Ruta no encontrada
-    else{
-        //Mensaje de error por HTTP
-        res.writeHead(404, {"content-type":"text/plain"});
-        res.end("Page no found");
+    else {
+        res.writeHead(404, { "Content-Type": "text/plain" });
+        res.end("Ruta no encontrada");
     }
 });
 
-server.listen(3000, ()=>{
+// Iniciar servidor
+server.listen(3000, () => {
     console.log("Servidor corriendo en http://localhost:3000");
 });
