@@ -1,5 +1,6 @@
 const http = require("http");
 const fs = require("fs");
+const os = require('os');
 const path = require("path");
 const eventos = require("events");
 
@@ -61,13 +62,13 @@ const server = http.createServer(async (req, res) => {
     await logRequest(req); // Log de cada petición
 
     // Ruta principal
-    if (req.url === "/") {
+    if (req.url === "/" && req.method === "GET") {
         res.writeHead(200, { "Content-Type": "text/plain" });
         res.end("Bienvenido al Servidor de Archivos");
     }
 
     // Leer archivo
-    else if (req.url === "/leer") {
+    else if (req.url === "/leer" && req.method === "GET") {
         fs.readFile(filePath, "utf-8", async (err, data) => {
             if (err) {
                 res.writeHead(500, { "Content-Type": "text/plain" });
@@ -80,7 +81,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     // Escribir archivo
-    else if (req.url === "/escribir") {
+    else if (req.url === "/escribir" && req.method === "GET") {
         fs.writeFile(filePath, "Hola, este es un nuevo archivo!", async (err) => {
             if (err) {
                 res.writeHead(500, { "Content-Type": "text/plain" });
@@ -93,7 +94,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     // Actualizar archivo
-    else if (req.url === "/actualizar") {
+    else if (req.url === "/actualizar" && req.method === "GET") {
         fs.appendFile(filePath, "\nNueva línea agregada!", async (err) => {
             if (err) {
                 res.writeHead(500, { "Content-Type": "text/plain" });
@@ -106,7 +107,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     // Eliminar archivo
-    else if (req.url === "/eliminar") {
+    else if (req.url === "/eliminar" && req.method === "GET") {
         fs.unlink(filePath, async (err) => {
             if (err) {
                 res.writeHead(500, { "Content-Type": "text/plain" });
