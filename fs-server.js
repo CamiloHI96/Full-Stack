@@ -118,6 +118,23 @@ const server = http.createServer(async (req, res) => {
             res.end("Archivo eliminado con éxito");
         });
     }
+    
+    // Información del sistema
+    else if (req.url === "/info" && req.method === "GET") {
+        const info = {
+            platform: os.platform(),
+            architecture: os.arch(),
+            freeMemory: os.freemem(),
+            totalMemory: os.totalmem(),
+            totalMemoryMB: (os.totalmem() / (1024 * 1024)).toFixed(2) + " MB",
+            cpuCores: os.cpus().length,
+            nodeVersion: process.version,
+            processId: process.pid,
+            projectDirectory: __dirname
+        };
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(info));
+    }
 
     // Ruta no encontrada
     else {
