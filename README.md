@@ -77,6 +77,7 @@ Archivo: Params_mysql.js
     GET	/products	(sin parámetros)	Lista todos los productos
 
 📖 Ejemplos de uso
+
     Crear producto
         curl -X POST "http://localhost:3000/create_product?name=Celular&type=Electrónico"
 
