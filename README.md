@@ -7,6 +7,8 @@
 Este proyecto implementa un servidor HTTP en **Node.js** que se conecta a una base de datos **MySQL** para gestionar productos.  
 Permite realizar operaciones básicas de CRUD (**Create, Read, Update, Delete**) sobre la tabla `productos`.
 
+Archivo: Params_mysql.js
+
 ---
 
 ## 📑 Tabla de contenidos
